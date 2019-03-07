@@ -17,7 +17,7 @@ local function CS( s, si )
 	if g then
 		g = g.get_signal( si )
 		if g ~= nil then
-			return r
+			return g
 		end
 	end
 	return 0

@@ -1,10 +1,15 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.2.1
+Date: 06.03.2019
+	Fixes:
+	 - Fixed a crashes when using a Green Wire
+---------------------------------------------------------------------------------------------------
 Version: 0.2.0
 Date: 27.02.2019
 	Updates:
-		- Updated to Version 17
+	 - Updated to Version 17
 ---------------------------------------------------------------------------------------------------
 Version: 0.1.0
 Date: 02.12.2018
     Features:
-        - Automatic Coupling and Decoupling
+     - Automatic Coupling and Decoupling
