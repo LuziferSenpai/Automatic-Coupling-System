@@ -141,8 +141,10 @@ end
 
 local function CC( t )
 	local s = t.station
-	if ( CS( s, SESI["Signal_Couple"] ) > 0 or CS( s, SESI["Signal_Uncouple"] ) > 0 ) then
-		global.TrainsID[t.id] = s
+	if s ~= nil then
+		if ( CS( s, SESI["Signal_Couple"] ) > 0 or CS( s, SESI["Signal_Uncouple"] ) > 0 ) then
+			global.TrainsID[t.id] = s
+		end
 	end
 end
 
