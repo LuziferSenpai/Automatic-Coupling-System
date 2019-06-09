@@ -143,13 +143,14 @@ local function CC( t )
 	local s = t.station
 	if s ~= nil then
 		if ( CS( s, SESI["Signal_Couple"] ) > 0 or CS( s, SESI["Signal_Uncouple"] ) > 0 ) then
-			global.TrainsID[t.id] = s
+			global.TrainsID[t.id] = { s = s, m = false }
+			return true
 		end
 	end
 end
 
 local function CP( t )
-	local s = global.TrainsID[t.id]
+	local s = global.TrainsID[t.id].s
 	global.TrainsID[t.id] = nil
 	if not s then return end
 	if not s.valid then return end
@@ -183,26 +184,24 @@ local function CP( t )
 		b.schedule = se
 		if #f.locomotives > 0 or c then f.manual_mode = false end
 		if #b.locomotives > 0 or c then b.manual_mode = false end
+		return true
 	end
 end
 
 local function globals()
 	global.TrainsID = global.TrainsID or {}
-	global.Couple = global.Couple or true
 end
 
 script.on_init( globals )
 script.on_configuration_changed( globals )
 
 script.on_event( defines.events.on_train_changed_state, function( ee )
-	if global.Couple then
-		local t = ee.train
-		local d = defines.train_state.wait_station
-		if t.state == d then
-			CC( t )
-		elseif ee.old_state == d and global.TrainsID[t.id] then
-			CP( t )
-		end
+	local t = ee.train
+	local d = defines.train_state.wait_station
+	if t.state == d then
+		CC( t )
+	elseif ee.old_state == d and global.TrainsID[t.id] and not global.TrainsID[t.id].m then
+		CP( t )
 	end
 end )
 
@@ -211,10 +210,21 @@ remote.add_interface
 	"Couple",
 	{
 		Check = function( t )
-			CC( t )
+			local p = CC( t )
+			if p then
+				global.TrainsID[t.id].m = true
+				return p
+			else
+				return false
+			end
 		end,
 		Couple = function( t )
-			CP( t )
+			local p = CP( t )
+			if p then
+				return p
+			else
+				return false
+			end
 		end
 	}
 )
