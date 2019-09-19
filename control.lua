@@ -1,189 +1,201 @@
-require "config"
+require "defines"
 
-local SESI = Senpais.Signals
-local rdi = defines.rail_direction
+local Signals = Senpais.Signals
+local rail_dir = defines.rail_direction
 local abs = math.abs
 local wire = defines.wire_type
 
-local function CS( s, si )
-	local r = s.get_circuit_network( wire.red )
-	local g = s.get_circuit_network( wire.green )
-	if r then
-		r = r.get_signal( si )
-		if r ~= nil then
-			return r
-		end
-	end
-	if g then
-		g = g.get_signal( si )
-		if g ~= nil then
-			return g
-		end
-	end
-	return 0
-end
+local function GetSignalValue( entity, signal )
+	local red = entity.get_circuit_network( wire.red )
+	local green = entity.get_circuit_network( wire.green )
+	local value = 0
 
-local function GS( e, s )
-	local r = e.get_circuit_network( wire.red )
-	local g = e.get_circuit_network( wire.green )
-	local v = 0
-	if r then
-		v = r.get_signal( s )
+	if red then
+		value = red.get_signal( signal )
 	end
-	if g then
-		v = v + g.get_signal( s )
+
+	if green then
+		value = value + green.get_signal( signal )
 	end
-	if v == 0 then
+
+	if value == 0 then
 		return nil
 	else
-		return v
+		return value
 	end
 end
 
-local function OM( o1, o2 )
-	return abs( o1 - o2 ) < 0.25 or abs( o1 - o2 ) > 0.75
+local function OrientationMatch( orient1, orient2 )
+	return abs( orient1 - orient2 ) < 0.25 or abs( orient1 - orient2 ) > 0.75
 end
 
-local function GO( e, t )
-	local x = t.position.x - e.position.x
-	local y = t.position.y - e.position.y
+local function GetOrientation( entity, target )
+	local x = target.position.x - entity.position.x
+	local y = target.position.y - entity.position.y
 	return ( math.atan2( y, x ) / 2 / math.pi + 0.25 ) % 1
 end
 
-local function GD( pa, pb )
-	return abs( pa.x - pb.x ) + abs( pa.y - pb.y )
+local function GetTileDistance( pos_a, pos_b )
+	return abs( pos_a.x - pos_b.x ) + abs( pos_a.y - pos_b.y )
 end
 
-local function GRF( t, s )
-	if GD( t.front_stock.position, s.position ) < GD( t.back_stock.position, s.position ) then
-		return t.front_stock
+local function GetRealFront( train, station )
+	if GetTileDistance( train.front_stock.position, station.position ) < GetTileDistance( train.back_stock.position, station.position ) then
+		return train.front_stock
 	else
-		return t.back_stock
+		return train.back_stock
 	end
 end
 
-local function GRB( t, s )
-	if GD( t.front_stock.position, s.position ) < GD( t.back_stock.position, s.position ) then
-		return t.back_stock
+local function GetRealBack( train, station )
+	if GetTileDistance( train.front_stock.position, station.position ) < GetTileDistance( train.back_stock.position, station.position ) then
+		return train.back_stock
 	else
-		return t.front_stock
+		return train.front_stock
 	end
 end
-local function SRD( r )
-	if r == rdi.front then
-		return rdi.back
+local function SwapRailDir( raildir )
+	if raildir == rail_dir.front then
+		return rail_dir.back
 	else
-		return rdi.front
+		return rail_dir.front
 	end
 end
 
-local function AU( f, c )
-	local t = f.train
-	local cr = t.carriages
-	local fr = t.front_stock
-	local br = t.back_stock
-	if c and abs( c ) < #cr then
-		local d = rdi.front
-		if f ~= fr then
-			c = c * -1
+local function AttemptUncouple( front, count )
+	local train = front.train
+	local carriages = train.carriages
+	local front_stock = train.front_stock
+	local back_stock = train.back_stock
+	
+	if count and abs( count ) < #carriages then
+		local direction = rail_dir.front
+
+		if front ~= front_stock then
+			count = count * -1
 		end
-		local ta = c
-		if c < 0 then
-			c = #cr + c
-			ta = c + 1
+
+		local target = count
+
+		if count < 0 then
+			count = #carriages + count
+			target = count + 1
 		else
-			c = c + 1
+			count = count + 1
 		end
-		local w = cr[c]
-		if not OM( GO( w, cr[ta] ), w.orientation ) then
-			d = SRD( d )
+
+		local wagon = carriages[count]
+		
+		if not OrientationMatch( GetOrientation( wagon, carriages[target] ), wagon.orientation ) then
+			direction = SwapRailDir( direction )
 		end
-		if w.disconnect_rolling_stock( d ) then
-			local fl = 0
-			local bl = 0
-			fr = fr.train
-			br = br.train
-			local ws = fr.carriages
-			for _, ce in pairs( ws ) do
-				if ce.type == "locomotive" then
-					fl = fl + 1
+
+		if wagon.disconnect_rolling_stock( direction ) then
+			local frontLocos = 0
+			local backLocos = 0
+
+			front_stock = front_stock.train
+			back_stock = back_stock.train
+
+			local wagons = front_stock.carriages
+
+			for _, carriage in pairs( wagons ) do
+				if carriage.type == "locomotive" then
+					frontLocos = frontLocos + 1
 				end
 			end
-			ws = br.carriages
-			for _, ce in pairs( ws ) do
-				if ce.type == "locomotive" then
-					bl = bl + 1
+
+			wagons = back_stock.carriages
+
+			for _, carriage in pairs( wagons ) do
+				if carriage.type == "locomotive" then
+					backLocos = backLocos + 1
 				end
 			end
-			if fl > 0 then fr.manual_mode = false end
-			if bl > 0 then br.manual_mode = false end
-			return w
+
+			if frontLocos > 0 then front_stock.manual_mode = false end
+			if backLocos > 0 then back_stock.manual_mode = false end
+			
+			return wagon
 		end
 	end
 end
 
 
-local function AC( t, c, s )
-	if c then
-		local d = rdi.front
-		if c < 0 then
-			d = defines.rail_direction.back
+local function AttemptCouple( train, count, station )
+	if count then
+		local direction = rail_dir.front
+		
+		if count < 0 then
+			direction =  rail_dir.back
 		end
-		local f = GRF( t, s )
-		if not OM( f.orientation, s.orientation ) then
-			d = SRD( d )
+		
+		local front = GetRealFront( train, station )
+		
+		if not OrientationMatch( front.orientation, station.orientation ) then
+			direction = SwapRailDir( direction )
 		end
-		if f.connect_rolling_stock( d ) then
-			return f
+		if front.connect_rolling_stock( direction ) then
+			return front
 		end
 	end
 end
 
-local function CC( t )
-	local s = t.station
-	if s ~= nil then
-		if ( CS( s, SESI["Signal_Couple"] ) > 0 or CS( s, SESI["Signal_Uncouple"] ) > 0 ) then
-			global.TrainsID[t.id] = { s = s, m = false }
+local function CheckCouple( train )
+	local station = train.station
+	if station ~= nil then
+		if ( GetSignalValue( station, Signals["Signal_Couple"] ) ~= nil or GetSignalValue( station, Signals["Signal_Uncouple"] ) ~= nil ) then
+			global.TrainsID[train.id] = { station = station, mod = false }
+			
 			return true
 		end
 	end
 end
 
-local function CP( t )
-	local s = global.TrainsID[t.id].s
-	global.TrainsID[t.id] = nil
-	if not s then return end
-	if not s.valid then return end
-	local c = false
-	local f = GRF( t, s )
-	local b = GRB( t, s )
-	local se = t.schedule
-	local ch = false
-	if AC( t, GS( s, SESI["Signal_Couple"] ), s ) then
-		ch = true
-		c = true
-		t = f.train
-		if f == t.front_stock or b == t.back_stock then
-			f = t.front_stock
-			b = t.back_stock
+local function Couple( train )
+	local station = global.TrainsID[train.id].station
+	
+	global.TrainsID[train.id] = nil
+	
+	if not station then return end
+	if not station.valid then return end
+	
+	local couple = false
+	local front = GetRealFront( train, station )
+	local back = GetRealBack( train, station )
+	local schedule = train.schedule
+	local changed = false
+	if AttemptCouple( train, GetSignalValue( station, Signals["Signal_Couple"] ), station ) then
+		changed = true
+		couple = true
+		train = front.train
+		
+		if front == train.front_stock or back == train.back_stock then
+			front = train.front_stock
+			back = train.back_stock
 		else
-			f = t.back_stock
-			b = t.front_stock
+			front = train.back_stock
+			back = train.front_stock
 		end
 	end
-	f = AU( f, GS( s, SESI["Signal_Uncouple"] ) )
-	if f then
-		ch = true
+	
+	front = AttemptUncouple( front, GetSignalValue( station, Signals["Signal_Uncouple"] ) )
+	
+	if front then
+		changed = true
 	else
-		f = b
+		front = back
 	end
-	if ch then
-		f = f.train
-		b = b.train
-		f.schedule = se
-		b.schedule = se
-		if #f.locomotives > 0 or c then f.manual_mode = false end
-		if #b.locomotives > 0 or c then b.manual_mode = false end
+	
+	if changed then
+		front = front.train
+		back = back.train
+		front.schedule = schedule
+		back.schedule = schedule
+		
+		if #front.locomotives > 0 or couple then front.manual_mode = false end
+		if #back.locomotives > 0 or couple then back.manual_mode = false end
+		
 		return true
 	end
 end
@@ -193,15 +205,43 @@ local function globals()
 end
 
 script.on_init( globals )
-script.on_configuration_changed( globals )
+script.on_configuration_changed( function( event )
+	local changes = event.mod_changes or {}
 
-script.on_event( defines.events.on_train_changed_state, function( ee )
-	local t = ee.train
-	local d = defines.train_state.wait_station
-	if t.state == d then
-		CC( t )
-	elseif ee.old_state == d and global.TrainsID[t.id] and not global.TrainsID[t.id].m then
-		CP( t )
+	if next( changes ) then
+		local couplechanges = changes["Automatic_Coupling_System"] or {}
+
+		if next( couplechanges ) then
+			local oldversion = couplechanges.old_version
+
+			if oldversion and couplechanges.new_version then
+				if oldversion <= "0.2.3" then
+
+					local TrainsID = global.TrainsID
+
+					global.TrainsID = nil
+
+					globals()
+
+					if next( TrainsID ) then
+						for id, data in pairs( TrainsID ) do
+							global.TrainsID[id] = { station = data.s, mod = data.m }
+						end
+					end
+				end
+			end
+		end
+	end
+end )
+
+script.on_event( defines.events.on_train_changed_state, function( event )
+	local train = event.train
+	local statedefines = defines.train_state.wait_station
+	
+	if train.state == statedefines then
+		CheckCouple( train )
+	elseif event.old_state == statedefines and global.TrainsID[train.id] and not global.TrainsID[train.id].mod then
+		Couple( train )
 	end
 end )
 
@@ -209,19 +249,22 @@ remote.add_interface
 (
 	"Couple",
 	{
-		Check = function( t )
-			local p = CC( t )
-			if p then
-				global.TrainsID[t.id].m = true
-				return p
+		Check = function( train )
+			local boolean = CheckCouple( train )
+			if boolean then
+				global.TrainsID[train.id].mod = true
+				
+				return boolean
 			else
 				return false
 			end
 		end,
-		Couple = function( t )
-			local p = CP( t )
-			if p then
-				return p
+
+		Couple = function( train )
+			local boolean = Couple( train )
+			
+			if boolean then
+				return boolean
 			else
 				return false
 			end

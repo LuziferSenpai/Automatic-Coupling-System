@@ -1,15 +1,15 @@
-local m = "__Automatic_Coupling_System__"
+local MODNAME = "__Automatic_Coupling_System__"
 
-local cp = util.table.deepcopy( data.raw["virtual-signal"]["signal-1"] )
-cp.name = "signal-couple"
-cp.icon = m .. "/signal-couple.png"
-cp.subgroup = "coupling-signals"
-cp.order = "a"
+local couple = util.table.deepcopy( data.raw["virtual-signal"]["signal-1"] )
+couple.name = "signal-couple"
+couple.icon = MODNAME .. "/signal-couple.png"
+couple.subgroup = "coupling-signals"
+couple.order = "a"
 
-local dp = util.table.deepcopy( data.raw["virtual-signal"]["signal-1"] )
-dp.name = "signal-decouple"
-dp.icon = m .. "/signal-decouple.png"
-dp.subgroup = "coupling-signals"
-dp.order = "b"
+local decouple = util.table.deepcopy( data.raw["virtual-signal"]["signal-1"] )
+decouple.name = "signal-decouple"
+decouple.icon = MODNAME .. "/signal-decouple.png"
+decouple.subgroup = "coupling-signals"
+decouple.order = "b"
 
-data:extend{ { type = "item-subgroup", name = "coupling-signals", group = "signals", order = "gg" }, cp, dp }
+data:extend{ { type = "item-subgroup", name = "coupling-signals", group = "signals", order = "zz" }, couple, decouple }
