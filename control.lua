@@ -5,6 +5,19 @@ local rail_dir = defines.rail_direction
 local abs = math.abs
 local wire = defines.wire_type
 
+-- Count the number of locomotives in the train
+function HasLocomotive(train)
+  if train and train.valid then
+	for _,loco in pairs(train.locomotives.front_movers) do
+	  return true
+    end
+    for _,loco in pairs(train.locomotives.back_movers) do
+	  return true
+    end
+  end
+  return false
+end
+
 local function GetSignalValue( entity, signal )
 	local red = entity.get_circuit_network( wire.red )
 	local green = entity.get_circuit_network( wire.green )
@@ -91,38 +104,16 @@ local function AttemptUncouple( front, count )
 		end
 
 		if wagon.disconnect_rolling_stock( direction ) then
-			local frontLocos = 0
-			local backLocos = 0
-
+			
 			front_stock = front_stock.train
 			back_stock = back_stock.train
 
-			local wagons = front_stock.carriages
-
-			for _, carriage in pairs( wagons ) do
-				if carriage.type == "locomotive" then
-					frontLocos = 1  -- only care if there is at least one loco
-					break
-				end
-			end
-
-			wagons = back_stock.carriages
-
-			for _, carriage in pairs( wagons ) do
-				if carriage.type == "locomotive" then
-					backLocos = 1  -- only care if there is at least one loco
-					break
-				end
-			end
-
-			-- Front section stays in automatic after uncoupling, force it to manual if no locomotives.
-			if frontLocos > 0 then
+			if HasLocomotive(frontStock) then 
 				front_stock.manual_mode = false
 			else
 				front_stock.manual_mode = true
 			end
-			-- Do the same for back section just to be safe.
-			if backLocos > 0 then
+			if HasLocomotive(backStock) then 
 				back_stock.manual_mode = false
 			else
 				back_stock.manual_mode = true
@@ -205,8 +196,8 @@ local function Couple( train )
 		front.schedule = schedule
 		back.schedule = schedule
 		
-		if #front.locomotives > 0 or couple then front.manual_mode = false end
-		if #back.locomotives > 0 or couple then back.manual_mode = false end
+		if HasLocomotive(front) or couple then front.manual_mode = false end
+		if HasLocomotive(back) or couple then back.manual_mode = false end
 		
 		return true
 	end
