@@ -101,7 +101,8 @@ local function AttemptUncouple( front, count )
 
 			for _, carriage in pairs( wagons ) do
 				if carriage.type == "locomotive" then
-					frontLocos = frontLocos + 1
+					frontLocos = 1  -- only care if there is at least one loco
+					break
 				end
 			end
 
@@ -109,12 +110,23 @@ local function AttemptUncouple( front, count )
 
 			for _, carriage in pairs( wagons ) do
 				if carriage.type == "locomotive" then
-					backLocos = backLocos + 1
+					backLocos = 1  -- only care if there is at least one loco
+					break
 				end
 			end
 
-			if frontLocos > 0 then front_stock.manual_mode = false end
-			if backLocos > 0 then back_stock.manual_mode = false end
+			-- Front section stays in automatic after uncoupling, force it to manual if no locomotives.
+			if frontLocos > 0 then
+				front_stock.manual_mode = false
+			else
+				front_stock.manual_mode = true
+			end
+			-- Do the same for back section just to be safe.
+			if backLocos > 0 then
+				back_stock.manual_mode = false
+			else
+				back_stock.manual_mode = true
+			end
 			
 			return wagon
 		end
