@@ -1,19 +1,47 @@
 local MODNAME = "__Automatic_Coupling_System__"
 
-local couple = util.table.deepcopy(data.raw["virtual-signal"]["signal-1"])
-couple.name = "signal-couple"
-couple.icon = MODNAME .. "/signal-couple.png"
-couple.icon_size = 32
-couple.icon_mipmap = nil
-couple.subgroup = "coupling-signals"
-couple.order = "a"
-
-local decouple = util.table.deepcopy(data.raw["virtual-signal"]["signal-1"])
-decouple.name = "signal-decouple"
-decouple.icon = MODNAME .. "/signal-decouple.png"
-decouple.icon_size = 32
-decouple.icon_mipmap = nil
-decouple.subgroup = "coupling-signals"
-decouple.order = "b"
-
-data:extend{{type = "item-subgroup", name = "coupling-signals", group = "signals", order = "zz"}, couple, decouple}
+data:extend(
+    {
+        {
+            type = "item-subgroup",
+            name = "coupling-signals",
+            group = "signals",
+            order = "zz"
+        },
+        {
+            type = "virtual-signal",
+            name = "signal-couple",
+            icon = MODNAME .. "/images/coupleSignal.png",
+            icon_size = 32,
+            subgroup = "coupling-signals",
+            order = "a"
+        },
+        {
+            type = "virtual-signal",
+            name = "signal-decouple",
+            icon = MODNAME .. "/images/decoupleSignal.png",
+            icon_size = 32,
+            subgroup = "coupling-signals",
+            order = "b"
+        },
+        {
+            type = "tips-and-tricks-item-category",
+            name = "luzifers-mods",
+            order = "s-[luzifers-mods]"
+        },
+        {
+            type = "tips-and-tricks-item",
+            name = "automatic-coupling-system",
+            category = "luzifers-mods",
+            order = "a",
+            is_title = true,
+            dependencies = { "train-stops", "circuit-network" },
+            tutorial = "automatic-coupling-system"
+        },
+        {
+            type = "tutorial",
+            name = "automatic-coupling-system",
+            scenario = "ACT"
+        }
+    }
+)

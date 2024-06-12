@@ -1,11 +1,11 @@
 {
     "name": "Automatic_Coupling_System",
-    "version": "1.0.1",
+    "version": "2.0.0",
     "title": "Automatic Coupling System",
     "author": "LuziferSenpai",
-    "contact": "mods@luzifersenpai.de",
-    "homepage": "luzifersenpai.de",
-    "description": "Adds a System that allows you to couple and decouple trains via the Circuit Network!",
+    "contact": "",
+    "homepage": "",
+    "description": "A way to couple & decouple trains at stations, via the circuit network.",
     "dependencies": ["base"],
     "factorio_version": "1.1"
 }

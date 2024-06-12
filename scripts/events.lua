@@ -1,7 +1,11 @@
 local coupleSignalId = { type = "virtual", name = "signal-couple" }
 local decoupleSignalId = { type = "virtual", name = "signal-decouple" }
-local wireTypeDefine = defines.wire_type
 local railDirectionDefine = defines.rail_direction
+local wireTypeDefine = defines.wire_type
+local eventsDefine = defines.events
+local eventsLib = {}
+
+-- This lib is exclusively for the use inside the tutorial scenarios
 
 local function checkCircuitNetworkHasSignal(entity, signalId)
     local redCircuitNetwork = entity.get_circuit_network(wireTypeDefine.red)
@@ -142,10 +146,10 @@ end
 
 local function doTrainCoupleLogic(train)
     local trainIdString = tostring(train.id)
-    local globalTainData = global.trainIds[trainIdString]
+    local globalTainData = global.automaticTrainIds[trainIdString]
     local stationEntity = globalTainData.station
 
-    global.trainIds[trainIdString] = nil
+    global.automaticTrainIds[trainIdString] = nil
 
     if stationEntity and stationEntity.valid then
         local trainFrontEntity, trainBackEntity = getFrontBackTrainEntity(train, stationEntity)
@@ -189,14 +193,59 @@ local function doTrainCoupleLogic(train)
     end
 end
 
-script.on_init(function()
-    global.trainIds = global.trainIds or {}
-end)
+eventsLib.events = {
+    [eventsDefine.on_game_created_from_scenario] = function()
+        global.automaticTrainIds = global.automaticTrainIds or {}
+    end,
+    [eventsDefine.on_train_created] = function(eventData)
+        local newTrainId = tostring(eventData.train.id)
+        local oldTrainId1 = tostring(eventData.old_train_id_1)
+        local oldTrainId2 = tostring(eventData.old_train_id_2)
 
-script.on_configuration_changed(function(eventData)
+        if global.automaticTrainIds[oldTrainId1] then
+            global.automaticTrainIds[newTrainId] = global.automaticTrainIds[oldTrainId1]
+        elseif global.automaticTrainIds[oldTrainId2] then
+            global.automaticTrainIds[newTrainId] = global.automaticTrainIds[oldTrainId2]
+        end
+
+        if global.automaticTrainIds[oldTrainId1] then
+            global.automaticTrainIds[oldTrainId1] = nil
+        end
+
+        if global.automaticTrainIds[oldTrainId2] then
+            global.automaticTrainIds[oldTrainId2] = nil
+        end
+    end,
+    [eventsDefine.on_train_changed_state] = function(eventData)
+        local train = eventData.train
+        local waitStationDefine = defines.train_state.wait_station
+
+        if train.state == waitStationDefine then
+            if checkCircuitNetworkHasSignals(train) then
+                global.automaticTrainIds[tostring(train.id)] = { station = train.station }
+            end
+
+            return
+        end
+
+        if eventData.old_state == waitStationDefine then
+            local globalTainData = global.automaticTrainIds[tostring(train.id)]
+
+            if globalTainData and not globalTainData.modded then
+                doTrainCoupleLogic(train)
+            end
+        end
+    end
+}
+
+eventsLib.on_init = function()
+    global.automaticTrainIds = global.automaticTrainIds or {}
+end
+
+eventsLib.on_configuration_changed = function(eventData)
     local modChanges = eventData.mod_changes
 
-    global.trainIds = global.trainIds or {}
+    global.automaticTrainIds = global.automaticTrainIds or {}
 
     if modChanges then
         local atcChanges = modChanges["Automatic_Coupling_System"]
@@ -212,7 +261,7 @@ script.on_configuration_changed(function(eventData)
 
                     if next(trainIds) then
                         for trainId, tableData in pairs(trainIds) do
-                            global.trainIds[tostring(trainId)] = tableData.s
+                            global.automaticTrainIds[tostring(trainId)] = tableData.s
                         end
                     end
                 end
@@ -224,60 +273,19 @@ script.on_configuration_changed(function(eventData)
 
                     if next(trainIds) then
                         for trainId, tableData in pairs(trainIds) do
-                            global.trainIds[tostring(trainId)] = tableData.station
+                            global.automaticTrainIds[tostring(trainId)] = tableData.station
                         end
                     end
                 end
             end
         end
     end
-end)
-
-script.on_event(defines.events.on_train_created, function(eventData)
-    local newTrainId = tostring(eventData.train.id)
-    local oldTrainId1 = tostring(eventData.old_train_id_1)
-    local oldTrainId2 = tostring(eventData.old_train_id_2)
-
-    if global.trainIds[oldTrainId1] then
-        global.trainIds[newTrainId] = global.trainIds[oldTrainId1]
-    elseif global.trainIds[oldTrainId2] then
-        global.trainIds[newTrainId] = global.trainIds[oldTrainId2]
-    end
-
-    if global.trainIds[oldTrainId1] then
-        global.trainIds[oldTrainId1] = nil
-    end
-
-    if global.trainIds[oldTrainId2] then
-        global.trainIds[oldTrainId2] = nil
-    end
-end)
-
-script.on_event(defines.events.on_train_changed_state, function(eventData)
-    local train = eventData.train
-    local waitStationDefine = defines.train_state.wait_station
-
-    if train.state == waitStationDefine then
-        if checkCircuitNetworkHasSignals(train) then
-            global.trainIds[tostring(train.id)] = { station = train.station }
-        end
-
-        return
-    end
-
-    if eventData.old_state == waitStationDefine then
-        local globalTainData = global.trainIds[tostring(train.id)]
-
-        if globalTainData and not globalTainData.modded then
-            doTrainCoupleLogic(train)
-        end
-    end
-end)
+end
 
 remote.add_interface("automaticCoupling", {
     checkCoupleSignals = function(train)
         if checkCircuitNetworkHasSignals(train) then
-            global.trainIds[tostring(train.id)] = { station = train.station, modded = true }
+            global.automaticTrainIds[tostring(train.id)] = { station = train.station, modded = true }
 
             return true
         end
@@ -286,3 +294,5 @@ remote.add_interface("automaticCoupling", {
     end,
     doTrainCoupleLogic = doTrainCoupleLogic
 })
+
+return eventsLib
