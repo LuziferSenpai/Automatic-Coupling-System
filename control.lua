@@ -212,7 +212,7 @@ script.on_configuration_changed(function(eventData)
 
                     if next(trainIds) then
                         for trainId, tableData in pairs(trainIds) do
-                            global.trainIds[tostring(trainId)] = tableData.s
+                            global.trainIds[tostring(trainId)] = { station = tableData.s, modded = tableData.m }
                         end
                     end
                 end
@@ -224,7 +224,7 @@ script.on_configuration_changed(function(eventData)
 
                     if next(trainIds) then
                         for trainId, tableData in pairs(trainIds) do
-                            global.trainIds[tostring(trainId)] = tableData.station
+                            global.trainIds[tostring(trainId)] = { station = tableData.station, modded = tableData.mod }
                         end
                     end
                 end

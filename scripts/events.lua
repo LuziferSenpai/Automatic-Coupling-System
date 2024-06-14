@@ -242,7 +242,7 @@ eventsLib.on_init = function()
     global.automaticTrainIds = global.automaticTrainIds or {}
 end
 
-eventsLib.on_configuration_changed = function(eventData)
+script.on_configuration_changed(function(eventData)
     local modChanges = eventData.mod_changes
 
     global.automaticTrainIds = global.automaticTrainIds or {}
@@ -261,7 +261,7 @@ eventsLib.on_configuration_changed = function(eventData)
 
                     if next(trainIds) then
                         for trainId, tableData in pairs(trainIds) do
-                            global.automaticTrainIds[tostring(trainId)] = tableData.s
+                            global.automaticTrainIds[tostring(trainId)] = { station = tableData.s, modded = tableData.m }
                         end
                     end
                 end
@@ -273,14 +273,14 @@ eventsLib.on_configuration_changed = function(eventData)
 
                     if next(trainIds) then
                         for trainId, tableData in pairs(trainIds) do
-                            global.automaticTrainIds[tostring(trainId)] = tableData.station
+                            global.automaticTrainIds[tostring(trainId)] = { station = tableData.station, modded = tableData.mod }
                         end
                     end
                 end
             end
         end
     end
-end
+end)
 
 remote.add_interface("automaticCoupling", {
     checkCoupleSignals = function(train)
