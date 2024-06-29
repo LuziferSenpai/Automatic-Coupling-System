@@ -217,7 +217,7 @@ script.on_configuration_changed(function(eventData)
                     end
                 end
 
-                if oldAtcVersion > "0.2.3" and oldAtcVersion <= "2.0.0" then
+                if oldAtcVersion > "0.2.3" and oldAtcVersion < "2.0.0" then
                     local trainIds = global.TrainsID
 
                     global.TrainsID = nil
