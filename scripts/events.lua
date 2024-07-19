@@ -112,11 +112,9 @@ local function attemptUncoupleTrain(train, stationEntity, trainFrontEntity)
             end
 
             if targetWagon.disconnect_rolling_stock(decoupleDirection) then
-                if carriages[targetCount].type == "locomotive" then
-                    carriages[targetCount].train.manual_mode = false
-                end
+                local targetTrainLocomotives = targetWagon.train.locomotives
 
-                if targetWagon.type == "locomotive" then
+                if #targetTrainLocomotives.front_movers > 0 or #targetTrainLocomotives.back_movers > 0 then
                     targetWagon.train.manual_mode = false
                 end
 
@@ -187,8 +185,11 @@ local function doTrainCoupleLogic(train)
             frontTrain.schedule = trainSchedule
             backTrain.schedule = trainSchedule
 
-            if #frontTrain.locomotives > 0 or didCouple then frontTrain.manual_mode = false end
-            if #backTrain.locomotives > 0 or didCouple then backTrain.manual_mode = false end
+            local frontTrainLocomotives = frontTrain.locomotives
+            local backTrainLocomotives = backTrain.locomotives
+
+            if #frontTrainLocomotives.front_movers > 0 or #frontTrainLocomotives.back_movers > 0 or didCouple then frontTrain.manual_mode = false end
+            if #backTrainLocomotives.front_movers > 0 or #backTrainLocomotives.back_movers > 0 or didCouple then backTrain.manual_mode = false end
         end
     end
 end
@@ -266,7 +267,7 @@ script.on_configuration_changed(function(eventData)
                     end
                 end
 
-                if oldAtcVersion > "0.2.3" and oldAtcVersion <= "2.0.0" then
+                if oldAtcVersion > "0.2.3" and oldAtcVersion < "2.0.0" then
                     local trainIds = global.TrainsID
 
                     global.TrainsID = nil
@@ -275,6 +276,13 @@ script.on_configuration_changed(function(eventData)
                         for trainId, tableData in pairs(trainIds) do
                             global.automaticTrainIds[tostring(trainId)] = { station = tableData.station, modded = tableData.mod }
                         end
+                    end
+                end
+
+                if oldAtcVersion > "2.0.0" and oldAtcVersion < "2.0.3" then
+                    if not global.automaticTrainIds then
+                        global.automaticTrainIds = global.trainIds
+                        global.trainIds = nil
                     end
                 end
             end
