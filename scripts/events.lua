@@ -113,9 +113,14 @@ local function attemptUncoupleTrain(train, stationEntity, trainFrontEntity)
 
             if targetWagon.disconnect_rolling_stock(decoupleDirection) then
                 local targetTrainLocomotives = targetWagon.train.locomotives
+                local trainLocomotives = carriages[targetCount].train.locomotives
 
                 if #targetTrainLocomotives.front_movers > 0 or #targetTrainLocomotives.back_movers > 0 then
                     targetWagon.train.manual_mode = false
+                end
+
+                if #trainLocomotives.front_movers > 0 or #trainLocomotives.back_movers > 0 then
+                    carriages[targetCount].train.manual_mode = false
                 end
 
                 return targetWagon
